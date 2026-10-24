@@ -1,0 +1,42 @@
+:root {
+  /* Paleta Corporativa JB Gestión & Capital Humano */
+  --color-primary: #112842;
+  --color-primary-dark: #07192d;
+  --color-primary-darker: #051a32;
+  --color-primary-accent: #05064e;
+
+  --color-gold: #af7e35;
+  --color-gold-hover: #8e6d23;
+  --color-gold-light: #b0892c;
+  --color-gold-soft: #fdfbf5;
+  --color-gold-border: #e0ceb1;
+
+  --color-bg-light: #f3eeeef5;
+  --color-bg-white: #ffffff;
+  --color-bg-alt: #f7f9fa;
+  --color-card-border: #eaeaea;
+
+  --color-text-dark: #112842;
+  --color-text-body: #444444;
+  --color-text-muted: #666666;
+  --color-text-light: #94a3b8;
+  --color-text-white: #ffffff;
+
+  --color-whatsapp: #04bd0a;
+
+  /* Tipografías */
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Montserrat', sans-serif;
+  --font-alt: 'Inter', sans-serif;
+
+  /* Sombras y elevaciones */
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 10px 20px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 15px 30px rgba(0, 0, 0, 0.15);
+  --shadow-gold: 0 15px 30px rgba(175, 126, 53, 0.2);
+
+  /* Transiciones */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.4s ease;
+}
