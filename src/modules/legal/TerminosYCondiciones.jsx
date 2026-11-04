@@ -114,10 +114,21 @@ export function TerminosYCondiciones() {
       <div className="space-y-2">
         <h3 className="text-base sm:text-lg font-black text-[#112842] flex items-center gap-2">
           <span className="w-1.5 h-5 bg-[#af7e35] rounded-full inline-block shrink-0"></span>
-          <span>SÉPTIMO: Cursos, Talleres y Certificaciones</span>
+          <span>SÉPTIMO: Cursos, Talleres y Certificaciones de participación</span>
         </h3>
         <p className="text-slate-600 leading-relaxed text-justify">
-          Para los cursos y programas de formación brindados por la Empresa, la emisión de los certificados de participación está supeditada al cumplimiento de los requisitos de asistencia y evaluación establecidos previamente para cada módulo. Los accesos a las salas virtuales y material didáctico son de uso estrictamente personal e intransferible.
+          Los cursos, talleres y programas de capacitación brindados por JB Gestión &amp;
+          Capital Humano E.I.R.L. constituyen servicios de formación y actualización
+          profesional de carácter privado y no formal.
+          La empresa podrá emitir constancias o certificados de participación de carácter
+          privado y no oficial, sujetos al cumplimiento de los requisitos de asistencia y,
+          cuando corresponda, evaluación, previamente informados para cada actividad.
+          Los documentos emitidos acreditan la participación en la actividad
+          correspondiente y no constituyen grados académicos, títulos profesionales ni
+          certificaciones oficiales reconocidas por el Ministerio de Educación, SUNEDU u
+          otra entidad pública.
+          El acceso a las plataformas virtuales, grabaciones y materiales de capacitación
+          es personal e intransferible, salvo autorización expresa de la empresa.
         </p>
       </div>
 
