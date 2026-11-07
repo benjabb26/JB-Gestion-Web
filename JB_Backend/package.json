@@ -1,0 +1,21 @@
+{
+  "name": "jb_backend",
+  "version": "1.0.0",
+  "description": "Backend API para integraciones y pagos Mercado Pago",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "mercadopago": "^3.6.1"
+  }
+}
