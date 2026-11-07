@@ -3,6 +3,7 @@ import {
     iniciarPagoController,
     crearPago,
     confirmarPagoController,
+    webhookMercadoPago,
 } from './pago.controller.js';
 
 const router = Router();
@@ -15,5 +16,8 @@ router.post('/mercadopago', crearPago);
 
 // Confirma el pago, pasa estado a inscrito y descuenta vacante
 router.post('/confirmar', confirmarPagoController);
+
+// Webhook de Mercado Pago
+router.post('/webhook', webhookMercadoPago);
 
 export default router;
