@@ -26,7 +26,23 @@ export const iniciarPagoService = async ({ id_preinscripcion, ids_preinscripcion
         throw new Error('id_preinscripcion o ids_preinscripciones es obligatorio para iniciar el pago.');
     }
 
-    const montoTotal = Number(monto) || 100;
+    // Calcular monto total si no vino especificado o si es menor o igual a cero
+    let montoTotal = Number(monto);
+    if (isNaN(montoTotal) || montoTotal <= 0) {
+        try {
+            const { data: preInfo } = await supabase
+                .from('preinscripciones')
+                .select('id_clase, clases_asignadas(cursos(precio))')
+                .in('id_preinscripcion', idsArray);
+            const sumaPrecios = (preInfo || []).reduce((sum, item) => {
+                const p = Number(item.clases_asignadas?.cursos?.precio);
+                return sum + (!isNaN(p) && p > 0 ? p : 0);
+            }, 0);
+            montoTotal = sumaPrecios > 0 ? sumaPrecios : 0;
+        } catch {
+            montoTotal = 0;
+        }
+    }
     const observaciones = titulo ? `Preinscripción iniciada para ${titulo}` : 'Preinscripción iniciada';
     let idPagoPrincipal = null;
 
@@ -223,9 +239,67 @@ export const confirmarPagoService = async ({
     }
     console.log(`[confirmarPagoService] Preinscripciones [${idsArray.join(', ')}] actualizadas a 'inscrito'`);
 
-    // 2. Actualizar o registrar en tabla 'pagos' para CADA preinscripción
+    // 2. Determinar el monto real de la transacción (evitando defaults ciegos como 100)
+    // Consultar primero las preinscripciones con sus clases y cursos desde la BD
+    let preDataList = null;
+    try {
+        const { data: infoPre } = await supabase
+            .from('preinscripciones')
+            .select('*, personas(*), clases_asignadas(*, cursos(*))')
+            .in('id_preinscripcion', idsArray);
+        preDataList = infoPre;
+    } catch (errInfo) {
+        console.warn('[confirmarPagoService] Aviso consultando datos de preinscripciones:', errInfo.message);
+    }
+
+    const sumaPreciosCatalogo = (preDataList || []).reduce((acc, item) => {
+        const p = Number(item.clases_asignadas?.cursos?.precio);
+        return acc + (!isNaN(p) && p >= 0 ? p : 0);
+    }, 0);
+
+    // Si numero_operacion es un ID de pago numérico real de Mercado Pago, consultar la API oficial
+    let montoMP = null;
+    if (numero_operacion && /^\d+$/.test(String(numero_operacion)) && process.env.MP_ACCESS_TOKEN) {
+        try {
+            const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${numero_operacion}`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+            });
+            if (mpRes.ok) {
+                const mpData = await mpRes.json();
+                if (mpData.transaction_amount !== undefined && mpData.transaction_amount !== null) {
+                    montoMP = Number(mpData.transaction_amount);
+                    console.log(`[confirmarPagoService] Monto oficial verificado en API Mercado Pago: S/ ${montoMP}`);
+                }
+            }
+        } catch (mpErr) {
+            console.warn('[confirmarPagoService] No se pudo verificar monto con Mercado Pago API:', mpErr.message);
+        }
+    }
+
+    // Resolución estricta del monto real:
+    // 1. API Mercado Pago si existe
+    // 2. Monto enviado explícito (siempre que no sea el fallback artificial de 100 cuando el catálogo dice otro precio)
+    // 3. Precio del curso configurado en catálogo de la BD
+    let montoTotal = 0;
+    if (montoMP !== null && !isNaN(montoMP)) {
+        montoTotal = montoMP;
+    } else if (monto !== undefined && monto !== null && !isNaN(Number(monto)) && Number(monto) > 0) {
+        if (Number(monto) === 100 && sumaPreciosCatalogo > 0 && sumaPreciosCatalogo !== 100) {
+            montoTotal = sumaPreciosCatalogo;
+        } else {
+            montoTotal = Number(monto);
+        }
+    } else if (sumaPreciosCatalogo > 0) {
+        montoTotal = sumaPreciosCatalogo;
+    } else {
+        montoTotal = 0;
+    }
+
+    console.log(`[confirmarPagoService] Monto final a registrar: S/ ${montoTotal}`);
+
+    // 3. Actualizar o registrar en tabla 'pagos' para CADA preinscripción
     let idPagoPrincipal = null;
-    const montoTotal = Number(monto) || 100;
 
     for (let i = 0; i < idsArray.length; i++) {
         const numPre = idsArray[i];
@@ -233,7 +307,7 @@ export const confirmarPagoService = async ({
 
         const { data: pagosExistentes } = await supabase
             .from('pagos')
-            .select('id_pago')
+            .select('id_pago, monto_pagado')
             .eq('id_preinscripcion', numPre);
 
         if (pagosExistentes && pagosExistentes.length > 0) {
@@ -245,7 +319,7 @@ export const confirmarPagoService = async ({
                     fecha_pago: fechaActual,
                     numero_operacion: numOp,
                     metodo_pago: metodo_pago,
-                    ...(monto ? { monto_pagado: montoItem } : {}),
+                    monto_pagado: montoItem,
                     observaciones: 'Pago confirmado exitosamente',
                 })
                 .eq('id_pago', pagoId);
@@ -253,7 +327,7 @@ export const confirmarPagoService = async ({
             if (errPagoUpdate) {
                 console.error(`[confirmarPagoService] Error actualizando pago id ${pagoId}:`, errPagoUpdate);
             } else {
-                console.log(`[confirmarPagoService] Pago id ${pagoId} (preinscripción ${numPre}) actualizado a 'pagado'`);
+                console.log(`[confirmarPagoService] Pago id ${pagoId} (preinscripción ${numPre}) actualizado a 'pagado' con monto S/ ${montoItem}`);
             }
             if (i === 0) idPagoPrincipal = pagoId;
         } else {
@@ -274,18 +348,13 @@ export const confirmarPagoService = async ({
             if (errPagoInsert) {
                 console.error(`[confirmarPagoService] Error insertando en pagos para preinscripción ${numPre}:`, errPagoInsert);
             } else {
-                console.log(`[confirmarPagoService] Pago nuevo creado y marcado como 'pagado' para preinscripción ${numPre}`);
+                console.log(`[confirmarPagoService] Pago nuevo creado y marcado como 'pagado' con monto S/ ${montoItem} para preinscripción ${numPre}`);
                 if (i === 0) idPagoPrincipal = nuevoPago?.id_pago;
             }
         }
     }
 
-    // 3. Restar 1 vacante en clases_asignadas para cada clase involucrada
-    const { data: preDataList } = await supabase
-        .from('preinscripciones')
-        .select('id_preinscripcion, id_clase')
-        .in('id_preinscripcion', idsArray);
-
+    // 4. Restar 1 vacante en clases_asignadas para cada clase involucrada
     const clasesUnicas = Array.from(new Set((preDataList || []).map(p => p.id_clase).filter(Boolean)));
 
     for (const cId of clasesUnicas) {
@@ -305,43 +374,35 @@ export const confirmarPagoService = async ({
         }
     }
 
-    // 4. Obtener detalle consolidado para la UI
+    // 5. Obtener detalle consolidado para la UI
     let detalleConsolidado = null;
-    try {
-        const { data: infoCompleta } = await supabase
-            .from('preinscripciones')
-            .select('*, personas(*), clases_asignadas(*, cursos(*))')
-            .in('id_preinscripcion', idsArray);
-
-        if (infoCompleta && infoCompleta.length > 0) {
-            const primero = infoCompleta[0];
-            detalleConsolidado = {
-                id_preinscripcion: idsArray.join(','),
-                ids_preinscripciones: idsArray,
-                id_persona: primero.id_persona,
-                id_clase: primero.id_clase,
-                codigo_clase: primero.clases_asignadas?.codigo_clase || `CLS-${primero.id_clase}`,
-                nombre_completo: primero.personas?.nombre_completo || 'Participante',
-                correo: primero.personas?.correo || '',
-                celular: primero.personas?.celular || '',
-                ciudad: primero.personas?.ciudad || '',
-                nombre_curso: infoCompleta.length > 1
-                    ? `${infoCompleta.length} Cursos JB Impulsa`
-                    : primero.clases_asignadas?.cursos?.nombre_curso || 'Curso de Capacitación',
-                precio: montoTotal,
-                estado_inscripcion: 'inscrito',
-                estado_pago: 'pagado',
-                numero_operacion: numOp,
-                cursos_confirmados: infoCompleta.map(item => ({
-                    id_preinscripcion: item.id_preinscripcion,
-                    id_clase: item.id_clase,
-                    codigo_clase: item.clases_asignadas?.codigo_clase || `CLS-${item.id_clase}`,
-                    nombre_curso: item.clases_asignadas?.cursos?.nombre_curso || 'Curso',
-                })),
-            };
-        }
-    } catch (detErr) {
-        console.warn('[confirmarPagoService] No se pudo obtener detalle consolidado:', detErr.message);
+    if (preDataList && preDataList.length > 0) {
+        const primero = preDataList[0];
+        detalleConsolidado = {
+            id_preinscripcion: idsArray.join(','),
+            ids_preinscripciones: idsArray,
+            id_persona: primero.id_persona,
+            id_clase: primero.id_clase,
+            codigo_clase: primero.clases_asignadas?.codigo_clase || `CLS-${primero.id_clase}`,
+            nombre_completo: primero.personas?.nombre_completo || 'Participante',
+            correo: primero.personas?.correo || '',
+            celular: primero.personas?.celular || '',
+            ciudad: primero.personas?.ciudad || '',
+            nombre_curso: preDataList.length > 1
+                ? `${preDataList.length} Cursos JB Impulsa`
+                : primero.clases_asignadas?.cursos?.nombre_curso || 'Curso de Capacitación',
+            precio: montoTotal,
+            estado_inscripcion: 'inscrito',
+            estado_pago: 'pagado',
+            numero_operacion: numOp,
+            cursos_confirmados: preDataList.map(item => ({
+                id_preinscripcion: item.id_preinscripcion,
+                id_clase: item.id_clase,
+                codigo_clase: item.clases_asignadas?.codigo_clase || `CLS-${item.id_clase}`,
+                nombre_curso: item.clases_asignadas?.cursos?.nombre_curso || 'Curso',
+                precio: Number(item.clases_asignadas?.cursos?.precio) || (montoTotal / (preDataList.length || 1)),
+            })),
+        };
     }
 
     return {

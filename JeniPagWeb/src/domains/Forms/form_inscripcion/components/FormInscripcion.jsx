@@ -289,7 +289,7 @@ export function FormInscripcion({ onOpenPrivacyPolicy }) {
                   <div className="pt-3 border-t border-dashed border-[#e0ceb1] flex justify-between items-center text-base">
                     <span className="font-bold text-[#112842]">Total a pagar:</span>
                     <span className="text-xl sm:text-2xl font-black text-[#af7e35]">
-                      S/ {Number(datosRegistrados.precio || 100).toFixed(2)} PEN
+                      S/ {Number(datosRegistrados.precio ?? 0).toFixed(2)} PEN
                     </span>
                   </div>
                 </div>
@@ -303,7 +303,6 @@ export function FormInscripcion({ onOpenPrivacyPolicy }) {
                   cantidad={1}
                   id_preinscripcion={datosRegistrados.id_preinscripcion}
                   ids_preinscripciones={datosRegistrados.ids_preinscripciones}
-                  onPagoExitoso={confirmarPagoExitoso}
                 />
               </div>
 
@@ -455,7 +454,7 @@ export function FormInscripcion({ onOpenPrivacyPolicy }) {
                       <div className="pt-3 border-t border-dashed border-slate-200 flex justify-between items-center text-sm">
                         <span className="font-bold text-[#112842]">Monto Total Abonado:</span>
                         <strong className="text-emerald-700 text-base font-black">
-                          S/ {Number(datosRegistrados.precio || 100).toFixed(2)} PEN
+                          S/ {Number(datosRegistrados.precio ?? 0).toFixed(2)} PEN
                         </strong>
                       </div>
                     </div>
@@ -499,7 +498,7 @@ export function FormInscripcion({ onOpenPrivacyPolicy }) {
                     <div className="bg-white p-3.5 rounded-xl border border-slate-100">
                       <span className="text-[#666666] block text-xs">Monto Abonado</span>
                       <strong className="text-emerald-700 text-base font-black">
-                        S/ {Number(datosRegistrados.precio || 100).toFixed(2)} PEN
+                        S/ {Number(datosRegistrados.precio ?? 0).toFixed(2)} PEN
                       </strong>
                     </div>
                     <div className="bg-white p-3.5 rounded-xl border border-slate-100 sm:col-span-2">

@@ -19,7 +19,6 @@ import usePagos from '../hooks/usePagos';
  * @param {number|string} [props.cantidad=1] - Cantidad.
  * @param {number|string} [props.id_preinscripcion] - ID de la preinscripción asociada en la BD.
  * @param {number[]|string[]} [props.ids_preinscripciones] - Lista de IDs de preinscripciones (multi-curso).
- * @param {function} [props.onPagoExitoso] - Callback para confirmar pago (vía backend).
  */
 export const BotonMercadoPago = ({
   titulo,
@@ -27,12 +26,10 @@ export const BotonMercadoPago = ({
   cantidad = 1,
   id_preinscripcion,
   ids_preinscripciones,
-  onPagoExitoso,
 }) => {
   const { crearPreferencia, cargando, error } = usePagos();
   const [redireccionando, setRedireccionando] = useState(false);
   const [urlRedireccion, setUrlRedireccion] = useState(null);
-  const [procesandoConfirmacion, setProcesandoConfirmacion] = useState(false);
   const [errorLocal, setErrorLocal] = useState(null);
 
   const handlePagar = async () => {
@@ -67,22 +64,6 @@ export const BotonMercadoPago = ({
     }
   };
 
-  const handleConfirmarSimulacion = async () => {
-    if (!onPagoExitoso) return;
-    setProcesandoConfirmacion(true);
-    try {
-      const operacionDemo = `MP-${Math.floor(100000000 + Math.random() * 900000000)}`;
-      await onPagoExitoso({
-        id_preinscripcion,
-        ids_preinscripciones,
-        numero_operacion: operacionDemo,
-        metodo_pago: 'mercadopago',
-      });
-    } finally {
-      setProcesandoConfirmacion(false);
-    }
-  };
-
   return (
     <div className="w-full flex flex-col items-center gap-4">
       {/* Botón Principal: Pagar con Mercado Pago */}
@@ -99,7 +80,11 @@ export const BotonMercadoPago = ({
           </>
         ) : (
           <>
-            <i className="fas fa-credit-card text-xl" />
+            <img
+              src="/mercadopago-logo.svg"
+              alt="Mercado Pago"
+              className="h-6 sm:h-7 w-auto object-contain shrink-0 drop-shadow-xs"
+            />
             <span>Pagar con Mercado Pago</span>
             <i className="fas fa-arrow-right text-sm ml-1" />
           </>
@@ -130,33 +115,6 @@ export const BotonMercadoPago = ({
               El servidor de pagos no está disponible en este momento. Por favor intenta más tarde o contáctanos por WhatsApp.
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Opción de confirmación inmediata / test para desarrollo */}
-      {onPagoExitoso && (
-        <div className="w-full pt-4 border-t border-slate-200/80 flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={handleConfirmarSimulacion}
-            disabled={procesandoConfirmacion}
-            className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-          >
-            {procesandoConfirmacion ? (
-              <>
-                <i className="fas fa-spinner fa-spin" />
-                <span>Confirmando pago y actualizando vacante...</span>
-              </>
-            ) : (
-              <>
-                <i className="fas fa-check-circle" />
-                <span>Simular Aprobación de Pago (Test)</span>
-              </>
-            )}
-          </button>
-          <p className="text-[11px] text-slate-400 text-center">
-            Prueba local: actualiza la preinscripción a &quot;inscrito&quot;, el pago a &quot;pagado&quot; y resta una vacante.
-          </p>
         </div>
       )}
     </div>

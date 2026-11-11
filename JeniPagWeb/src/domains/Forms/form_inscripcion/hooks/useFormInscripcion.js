@@ -130,7 +130,7 @@ export function useFormInscripcion() {
         const cursosDbMap = new Map();
         (cursosData || []).forEach((c) => {
           cursosDbMap.set(c.id_curso, {
-            precio: Number(c.precio) || 100,
+            precio: (c.precio !== null && c.precio !== undefined && !isNaN(Number(c.precio))) ? Number(c.precio) : 0,
             codigo_curso: c.codigo_curso || '',
           });
         });
@@ -139,7 +139,7 @@ export function useFormInscripcion() {
         const cursosMap = new Map();
         (clasesData || []).forEach((fila) => {
           if (!cursosMap.has(fila.id_curso)) {
-            const dbInfo = cursosDbMap.get(fila.id_curso) || { precio: 100, codigo_curso: '' };
+            const dbInfo = cursosDbMap.get(fila.id_curso) || { precio: 0, codigo_curso: '' };
             cursosMap.set(fila.id_curso, {
               id_curso: fila.id_curso,
               nombre_curso: fila.nombre_curso,
@@ -489,9 +489,6 @@ export function useFormInscripcion() {
         // Guardar todos los id_preinscripcion en localStorage (separados por coma si son varios)
         const todosLosIds = registros.map((r) => r.id_preinscripcion);
         const idsCadena = todosLosIds.join(',');
-        try {
-          localStorage.setItem('inscripcion_pendiente_id', idsCadena);
-        } catch {}
 
         // Monto total
         const montoTotal = registros.reduce((sum, r) => sum + Number(r.precio || 0), 0);
@@ -557,6 +554,13 @@ export function useFormInscripcion() {
           estado_pago: 'pendiente',
         };
 
+        // Persistir en localStorage para recuperar datos exactos al volver de Mercado Pago
+        try {
+          localStorage.setItem('inscripcion_pendiente_id', idsCadena);
+          localStorage.setItem('inscripcion_pendiente_monto', String(montoTotal));
+          localStorage.setItem('inscripcion_pendiente_datos', JSON.stringify(datosConfirmados));
+        } catch {}
+
         setDatosRegistrados(datosConfirmados);
         setEstados((prev) => ({ ...prev, enviando: false, enviado: true, fase: 'checkout' }));
         return { success: true, id_preinscripcion: primerRegistro.id_preinscripcion, ids_preinscripciones: todosLosIds };
@@ -575,10 +579,13 @@ export function useFormInscripcion() {
 
   /* --------------------------------------------------------------------------
    * confirmarPagoExitoso:
-   * SEGURIDAD: Toda confirmación de pago pasa EXCLUSIVAMENTE por el backend.
-   * El backend usa la SERVICE_ROLE_KEY para actualizar la BD con bypass de RLS.
-   * Si el backend no responde, el proceso se detiene y se muestra un error.
-   * NUNCA se escribe directamente a Supabase desde el frontend para operaciones de pago.
+   * BLINDAJE DE SEGURIDAD:
+   * La confirmación de pago está estrictamente restringida al retorno oficial
+   * de Mercado Pago verificado mediante parámetros de URL ('pago === aprobado'
+   * o 'status === approved' / 'collection_status === approved').
+   * Se bloquea y rechaza cualquier intento de confirmación simulada o ficticia
+   * desde el cliente.
+   * Toda actualización en la BD pasa EXCLUSIVAMENTE por el backend vía SERVICE_ROLE_KEY.
    * -------------------------------------------------------------------------- */
   const confirmarPagoExitoso = useCallback(
     async ({
@@ -586,7 +593,35 @@ export function useFormInscripcion() {
       metodo_pago = 'mercadopago',
       id_preinscripcion: idProp,
       ids_preinscripciones: idsProp,
+      esRetornoOficial = false,
     } = {}) => {
+      // 1. Verificación estricta de legitimidad: solo retorno oficial de pasarela
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const esRetornoLegitimo =
+        esRetornoOficial ||
+        Boolean(
+          urlParams &&
+          (urlParams.get('pago') === 'aprobado' ||
+           urlParams.get('status') === 'approved' ||
+           urlParams.get('collection_status') === 'approved')
+        );
+
+      if (!esRetornoLegitimo) {
+        console.warn(
+          '[useFormInscripcion] SEGURIDAD: Invocación de confirmación de pago rechazada. No proviene del retorno legítimo de Mercado Pago.'
+        );
+        return false;
+      }
+
+      // Recuperar datos previos en caso de recarga tras redirección de pasarela
+      let datosPrevios = datosRegistrados;
+      if (!datosPrevios && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('inscripcion_pendiente_datos');
+          if (raw) datosPrevios = JSON.parse(raw);
+        } catch {}
+      }
+
       // Recopilar lista completa de IDs (array de números) para admitir inscripciones multi-curso
       let idsAConfirmar = [];
 
@@ -597,6 +632,13 @@ export function useFormInscripcion() {
         datosRegistrados.ids_preinscripciones.length > 0
       ) {
         idsAConfirmar = datosRegistrados.ids_preinscripciones
+          .map(Number)
+          .filter((n) => !isNaN(n) && n > 0);
+      } else if (
+        Array.isArray(datosPrevios?.ids_preinscripciones) &&
+        datosPrevios.ids_preinscripciones.length > 0
+      ) {
+        idsAConfirmar = datosPrevios.ids_preinscripciones
           .map(Number)
           .filter((n) => !isNaN(n) && n > 0);
       } else if (idProp) {
@@ -611,8 +653,8 @@ export function useFormInscripcion() {
           const num = Number(idProp);
           if (!isNaN(num) && num > 0) idsAConfirmar = [num];
         }
-      } else if (datosRegistrados?.id_preinscripcion) {
-        const str = String(datosRegistrados.id_preinscripcion);
+      } else if (datosRegistrados?.id_preinscripcion || datosPrevios?.id_preinscripcion) {
+        const str = String(datosRegistrados?.id_preinscripcion || datosPrevios?.id_preinscripcion);
         if (str.includes(',')) {
           idsAConfirmar = str
             .split(',')
@@ -644,9 +686,23 @@ export function useFormInscripcion() {
         return false;
       }
 
-      const idClase = datosRegistrados?.id_clase;
-      const numOp = numero_operacion || `MP-SIM-${Math.floor(100000000 + Math.random() * 900000000)}`;
-      const montoFinal = Number(datosRegistrados?.precio) || 100;
+      const idClase = datosRegistrados?.id_clase || datosPrevios?.id_clase;
+      const paymentIdFromUrl = urlParams
+        ? (urlParams.get('payment_id') || urlParams.get('collection_id') || urlParams.get('preference_id'))
+        : null;
+      const numOp = numero_operacion || paymentIdFromUrl || `MP-${Date.now()}`;
+
+      // Resolver monto real sin forzar nunca un default de 100
+      const storedMonto = typeof window !== 'undefined' ? localStorage.getItem('inscripcion_pendiente_monto') : null;
+      let montoFinal = undefined;
+      if (datosRegistrados?.precio !== undefined && datosRegistrados?.precio !== null) {
+        montoFinal = Number(datosRegistrados.precio);
+      } else if (datosPrevios?.precio !== undefined && datosPrevios?.precio !== null) {
+        montoFinal = Number(datosPrevios.precio);
+      } else if (storedMonto !== null && !isNaN(Number(storedMonto))) {
+        montoFinal = Number(storedMonto);
+      }
+
       const idsCadena = idsAConfirmar.join(',');
 
       setEstados((prev) => ({ ...prev, procesandoPago: true, errorPago: null }));
@@ -681,16 +737,22 @@ export function useFormInscripcion() {
 
         // Actualizar estado local a 'inscrito' y 'pagado'
         setDatosRegistrados((prev) => {
-          const prevCursos = prev?.cursos_registrados || [];
+          const base = prev || datosPrevios || {};
+          const prevCursos = base?.cursos_registrados || [];
+          const precioConfirmado = data?.detalle?.precio !== undefined && data?.detalle?.precio !== null
+            ? Number(data.detalle.precio)
+            : (montoFinal !== undefined ? montoFinal : Number(base?.precio || 0));
+
           return {
-            ...(prev || {}),
+            ...base,
             id_preinscripcion: idsAConfirmar[0],
             ids_preinscripciones: idsAConfirmar,
             estado_inscripcion: 'inscrito',
             estado_pago: 'pagado',
             numero_operacion: numOp,
             ...(data?.detalle || {}),
-            codigo_clase: data?.detalle?.codigo_clase || prev?.codigo_clase || (idClase ? `CLS-${idClase}` : null),
+            precio: precioConfirmado,
+            codigo_clase: data?.detalle?.codigo_clase || base?.codigo_clase || (idClase ? `CLS-${idClase}` : null),
             cursos_registrados: prevCursos.length > 0 ? prevCursos : (data?.detalle?.cursos_confirmados || []),
           };
         });
@@ -737,11 +799,12 @@ export function useFormInscripcion() {
       params.get('preference_id');
 
     if ((pago === 'aprobado' || status === 'approved') && ref) {
-      console.log('[useFormInscripcion] Retorno de Mercado Pago aprobado detectado para ref:', ref);
+      console.log('[useFormInscripcion] Retorno legítimo de Mercado Pago detectado para ref:', ref);
       confirmarPagoExitoso({
         id_preinscripcion: ref,
         numero_operacion: paymentId ? String(paymentId) : undefined,
         metodo_pago: 'mercadopago',
+        esRetornoOficial: true,
       });
 
       // Limpiar query params de la URL sin recargar
@@ -784,9 +847,8 @@ export function useFormInscripcion() {
     seleccionarHorario,
     deseleccionarCurso,
 
-    // Envío y Confirmación de Pago
+    // Envío y Estado del Formulario
     enviarFormulario,
-    confirmarPagoExitoso,
     resetForm,
 
     // Estados de carga / error / fases

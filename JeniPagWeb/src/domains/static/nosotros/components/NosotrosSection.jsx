@@ -74,64 +74,56 @@ export function NosotrosSection() {
         {/* Tarjetas de Misión y Visión (Grid de 2 columnas) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto mt-10 mb-20 sm:mb-24 items-stretch">
           {/* Tarjeta 1: MISIÓN */}
-          <div className="bg-white/95 backdrop-blur-md p-7 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md hover:shadow-xl hover:border-[#af7e35]/40 transition-all duration-300 flex flex-col justify-between relative group">
-            <div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#af7e35]/15 border border-[#af7e35]/30 flex items-center justify-center text-[#af7e35] text-xl sm:text-2xl shrink-0 group-hover:scale-105 group-hover:bg-[#af7e35]/20 transition-all duration-300">
-                  <i className="fas fa-bullseye" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#112842]/70 block">
-                    Nuestra
-                  </span>
-                  <h4 className="text-xl sm:text-2xl font-black text-[#112842] uppercase tracking-tight">
-                    MISIÓN
-                  </h4>
-                  <div className="w-10 h-0.5 bg-[#af7e35] rounded-full mt-1" />
-                </div>
+          <div className="bg-[#fdfcf9] p-7 sm:p-8 rounded-3xl border border-[#ebdcc7] shadow-md hover:shadow-xl hover:border-[#af7e35]/60 transition-all duration-300 flex flex-col justify-start relative group">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#f6ede0] flex items-center justify-center text-[#af7e35] text-xl sm:text-2xl shrink-0 group-hover:scale-105 transition-all duration-300">
+                <i className="fas fa-bullseye" />
               </div>
-
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
-                Impulsar el crecimiento de empresas y personas mediante{' '}
-                <strong className="text-[#112842] font-bold">
-                  soluciones integrales, innovación y confianza.
-                </strong>
-              </p>
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#af7e35] block">
+                  Nuestra
+                </span>
+                <h4 className="text-xl sm:text-2xl font-black text-[#112842] uppercase tracking-tight">
+                  MISIÓN
+                </h4>
+                <div className="w-10 h-0.5 bg-[#af7e35] rounded-full mt-1" />
+              </div>
             </div>
 
-            <div className="w-full h-1 bg-slate-100 group-hover:bg-gradient-to-r group-hover:from-[#af7e35] group-hover:to-[#8e6d23] transition-all duration-500 rounded-full mt-8" />
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
+              Impulsar el crecimiento de empresas y personas mediante{' '}
+              <strong className="text-[#112842] font-bold">
+                soluciones integrales, innovación y confianza.
+              </strong>
+            </p>
           </div>
 
           {/* Tarjeta 2: VISIÓN */}
-          <div className="bg-white/95 backdrop-blur-md p-7 sm:p-8 rounded-3xl border border-slate-200/80 shadow-md hover:shadow-xl hover:border-[#af7e35]/40 transition-all duration-300 flex flex-col justify-between relative group">
-            <div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#af7e35]/15 border border-[#af7e35]/30 flex items-center justify-center text-[#af7e35] text-xl sm:text-2xl shrink-0 group-hover:scale-105 group-hover:bg-[#af7e35]/20 transition-all duration-300">
-                  <i className="fas fa-eye" />
-                </div>
-                <div>
-                  <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#112842]/70 block">
-                    Nuestra
-                  </span>
-                  <h4 className="text-xl sm:text-2xl font-black text-[#112842] uppercase tracking-tight">
-                    VISIÓN
-                  </h4>
-                  <div className="w-10 h-0.5 bg-[#af7e35] rounded-full mt-1" />
-                </div>
+          <div className="bg-white p-7 sm:p-8 rounded-3xl border border-slate-200/90 shadow-md hover:shadow-xl hover:border-[#af7e35]/60 transition-all duration-300 flex flex-col justify-start relative group">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#f6ede0] flex items-center justify-center text-[#af7e35] text-xl sm:text-2xl shrink-0 group-hover:scale-105 transition-all duration-300">
+                <i className="fas fa-eye" />
               </div>
-
-              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
-                Ser una{' '}
-                <strong className="text-[#112842] font-bold">empresa referente en el Perú</strong>{' '}
-                por ofrecer soluciones empresariales integrales, innovadoras y de calidad, reconocida
-                por su compromiso con el talento humano, la transformación digital y el{' '}
-                <strong className="text-[#112842] font-bold">
-                  crecimiento sostenible de sus clientes.
-                </strong>
-              </p>
+              <div>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#af7e35] block">
+                  Nuestra
+                </span>
+                <h4 className="text-xl sm:text-2xl font-black text-[#112842] uppercase tracking-tight">
+                  VISIÓN
+                </h4>
+                <div className="w-10 h-0.5 bg-[#af7e35] rounded-full mt-1" />
+              </div>
             </div>
 
-            <div className="w-full h-1 bg-slate-100 group-hover:bg-gradient-to-r group-hover:from-[#af7e35] group-hover:to-[#8e6d23] transition-all duration-500 rounded-full mt-8" />
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
+              Ser una{' '}
+              <strong className="text-[#112842] font-bold">empresa referente en el Perú</strong>{' '}
+              por ofrecer soluciones empresariales integrales, innovadoras y de calidad, reconocida
+              por su compromiso con el talento humano, la transformación digital y el{' '}
+              <strong className="text-[#112842] font-bold">
+                crecimiento sostenible de sus clientes.
+              </strong>
+            </p>
           </div>
         </div>
 
